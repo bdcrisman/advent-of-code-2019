@@ -3,35 +3,34 @@ package main
 import (
 	"bufio"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"sync"
 )
 
-// SafeSum is a mutex wrapper for the overall sum.
-type SafeSum struct {
+// SumMutex is a mutex wrapper for the overall sum.
+type SumMutex struct {
 	sum int
 	mux sync.Mutex
 }
 
 // AddToSum safely adds to the overall sum.
-func (s *SafeSum) AddToSum(value int) {
+func (s *SumMutex) AddToSum(value int) {
 	s.mux.Lock()
 	s.sum += value
 	s.mux.Unlock()
 }
 
-// For fun, I'm utilizing a goroutine and waitgroup to sum the
+// I'm utilizing a waitgroup to sum the
 // fuel requirements from the input file.
-// I guess I could do this one line at a time and it would probably
-// take less time...but I'll have to time my solution.
 func main() {
-	inputArr, err := getInputData("../input")
+	inputArr, err := getInputData("../../input")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s := SafeSum{}
+	s := SumMutex{}
 	var wg sync.WaitGroup
 	wg.Add(len(inputArr))
 
@@ -63,7 +62,20 @@ func getInputData(path string) (lines []string, err error) {
 	return
 }
 
-func getFuelRequirement(mass int, s *SafeSum, wg *sync.WaitGroup) {
+func getFuelRequirement(mass int, s *SumMutex, wg *sync.WaitGroup) {
 	defer wg.Done()
-	s.AddToSum(int(mass/3) - 2)
+	sum := getAllFuelRequirements(mass, true)
+	s.AddToSum(sum)
+}
+
+func getAllFuelRequirements(mass int, first bool) int {
+	if mass < 0 {
+		return 0
+	}
+
+	m := int(math.Floor(float64(mass)/3) - 2)
+	if first {
+		return getAllFuelRequirements(m, false)
+	}
+	return mass + getAllFuelRequirements(m, false)
 }
